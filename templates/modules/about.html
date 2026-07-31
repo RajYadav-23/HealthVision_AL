@@ -1,0 +1,183 @@
+{% extends "base.html" %}
+{% block title %}About AI – HealthVision AI{% endblock %}
+{% block page_title %}<span>About AI</span><small>Understanding ANN & CNN for presentations</small>{% endblock %}
+
+{% block content %}
+<!-- ANN Section -->
+<div class="section-header">
+    <h4><i class="fa-solid fa-brain" style="color:var(--primary); margin-right:8px;"></i> Artificial Neural Network (ANN)</h4>
+    <p>A computational model inspired by the human brain, used for structured/tabular data prediction.</p>
+</div>
+
+<div class="row g-3 mb-4">
+    {% for title, icon, color, desc in [
+        ('Input Layer', 'fa-arrow-right-to-bracket', 'var(--primary)',
+         'Receives raw feature values (e.g., glucose, BMI, age). Each neuron represents one input feature. No computation happens here — data just flows in.'),
+        ('Hidden Layers', 'fa-circle-nodes', '#6f42c1',
+         'Perform the actual learning. Each neuron applies weights, adds a bias, then passes through an activation function. Multiple hidden layers allow the network to learn complex patterns.'),
+        ('Output Layer', 'fa-arrow-right-from-bracket', 'var(--success)',
+         'Produces the final prediction. For binary classification (e.g., diabetic/not), a single neuron with Sigmoid activation outputs a probability between 0 and 1.'),
+        ('Activation Function', 'fa-bolt', '#d97706',
+         'Introduces non-linearity. ReLU (max(0,x)) is used in hidden layers. Sigmoid (1/(1+e^-x)) is used in the output for binary classification. Without activation, the network is just linear regression.'),
+        ('Forward Propagation', 'fa-forward', 'var(--teal-dark)',
+         'Data flows from input → hidden → output. At each layer: output = activation(W·x + b). This produces a prediction.'),
+        ('Backpropagation', 'fa-backward', 'var(--danger)',
+         'The error (loss) is calculated and propagated backwards. Gradients are computed using the chain rule. Weights are updated using an optimizer (Adam) to minimize the loss.'),
+    ] %}
+    <div class="col-md-4">
+        <div class="content-card" style="height:100%;">
+            <div class="card-body">
+                <div style="display:flex; align-items:center; gap:12px; margin-bottom:12px;">
+                    <div style="width:42px; height:42px; border-radius:10px; background:rgba(0,0,0,0.04); display:flex; align-items:center; justify-content:center; color:{{ color }}; font-size:18px; flex-shrink:0;">
+                        <i class="fa-solid {{ icon }}"></i>
+                    </div>
+                    <h6 style="margin:0; font-size:15px; font-weight:700; color:#0f172a;">{{ title }}</h6>
+                </div>
+                <p style="font-size:13.5px; color:#475569; line-height:1.7; margin:0;">{{ desc }}</p>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- ANN Diagram -->
+<div class="content-card mb-4">
+    <div class="card-header"><h6><i class="fa-solid fa-diagram-project"></i> ANN Architecture Diagram</h6></div>
+    <div class="card-body" style="text-align:center; overflow-x:auto;">
+        <div id="annDiagram" style="min-height:200px;"></div>
+    </div>
+</div>
+
+<!-- CNN Section -->
+<div class="section-header" style="margin-top:8px;">
+    <h4><i class="fa-solid fa-x-ray" style="color:#6f42c1; margin-right:8px;"></i> Convolutional Neural Network (CNN)</h4>
+    <p>Specialized for image data. Automatically learns spatial features like edges, textures, and shapes.</p>
+</div>
+
+<div class="row g-3 mb-4">
+    {% for title, icon, color, desc in [
+        ('Convolution Layer', 'fa-border-all', '#6f42c1',
+         'Applies learnable filters (kernels) across the image. Each filter detects a specific feature (edge, curve, texture). Output is called a feature map.'),
+        ('Filter / Kernel', 'fa-filter', 'var(--primary)',
+         'A small matrix (e.g., 3×3) that slides over the image. The dot product between the filter and image patch produces one value in the feature map. Filters are learned during training.'),
+        ('Pooling Layer', 'fa-compress', 'var(--teal-dark)',
+         'Reduces spatial dimensions (downsampling). MaxPooling takes the maximum value in each region. This reduces computation and makes features more robust to position.'),
+        ('Flatten', 'fa-grip-lines', '#d97706',
+         'Converts the 2D feature maps into a 1D vector. This bridges the convolutional layers and the fully connected (Dense) layers.'),
+        ('Dense Layer', 'fa-circle-nodes', 'var(--success)',
+         'Fully connected layer that combines all learned features. Works like a standard ANN layer. Learns high-level combinations of features for classification.'),
+        ('Softmax / Sigmoid', 'fa-wave-square', 'var(--danger)',
+         'Final activation. Sigmoid for binary (Normal/Pneumonia). Softmax for multi-class. Outputs probabilities that sum to 1 across all classes.'),
+    ] %}
+    <div class="col-md-4">
+        <div class="content-card" style="height:100%;">
+            <div class="card-body">
+                <div style="display:flex; align-items:center; gap:12px; margin-bottom:12px;">
+                    <div style="width:42px; height:42px; border-radius:10px; background:rgba(0,0,0,0.04); display:flex; align-items:center; justify-content:center; color:{{ color }}; font-size:18px; flex-shrink:0;">
+                        <i class="fa-solid {{ icon }}"></i>
+                    </div>
+                    <h6 style="margin:0; font-size:15px; font-weight:700; color:#0f172a;">{{ title }}</h6>
+                </div>
+                <p style="font-size:13.5px; color:#475569; line-height:1.7; margin:0;">{{ desc }}</p>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Comparison Table -->
+<div class="content-card mb-4">
+    <div class="card-header"><h6><i class="fa-solid fa-table"></i> ANN vs CNN Comparison</h6></div>
+    <div class="card-body" style="padding:0;">
+        <table class="hv-table">
+            <thead>
+                <tr><th>Feature</th><th>ANN</th><th>CNN</th></tr>
+            </thead>
+            <tbody>
+                {% for row in [
+                    ('Input Type', 'Tabular / Structured data', 'Images / Spatial data'),
+                    ('Architecture', 'Dense layers only', 'Conv + Pooling + Dense'),
+                    ('Feature Extraction', 'Manual (requires feature engineering)', 'Automatic (learns from pixels)'),
+                    ('Use Case in Project', 'Diabetes risk prediction', 'Chest X-ray classification'),
+                    ('Dataset', 'Pima Indians Diabetes', 'Chest X-Ray (Pneumonia)'),
+                    ('Output', 'Diabetic / Not Diabetic', 'Normal / Pneumonia'),
+                    ('Activation (Output)', 'Sigmoid', 'Sigmoid'),
+                    ('Loss Function', 'Binary Crossentropy', 'Binary Crossentropy'),
+                    ('Optimizer', 'Adam', 'Adam'),
+                ] %}
+                <tr>
+                    <td><strong>{{ row[0] }}</strong></td>
+                    <td style="color:var(--primary);">{{ row[1] }}</td>
+                    <td style="color:#6f42c1;">{{ row[2] }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Key Metrics Explained -->
+<div class="content-card">
+    <div class="card-header"><h6><i class="fa-solid fa-chart-bar"></i> Model Evaluation Metrics Explained</h6></div>
+    <div class="card-body">
+        <div class="row g-3">
+            {% for metric, formula, desc, color in [
+                ('Accuracy', 'Correct / Total', 'Overall percentage of correct predictions. Good for balanced datasets.', 'var(--primary)'),
+                ('Precision', 'TP / (TP + FP)', 'Of all positive predictions, how many were actually positive? High precision = fewer false alarms.', 'var(--teal-dark)'),
+                ('Recall', 'TP / (TP + FN)', 'Of all actual positives, how many did we catch? High recall = fewer missed cases.', 'var(--success)'),
+                ('F1 Score', '2 × (P × R) / (P + R)', 'Harmonic mean of Precision and Recall. Best metric for imbalanced datasets.', '#6f42c1'),
+                ('ROC AUC', 'Area under ROC curve', 'Measures ability to distinguish between classes. 1.0 = perfect, 0.5 = random.', '#d97706'),
+                ('Confusion Matrix', 'TP, FP, TN, FN grid', 'Visual breakdown of correct and incorrect predictions for each class.', 'var(--danger)'),
+            ] %}
+            <div class="col-md-4">
+                <div style="background:#f8fafc; border-radius:10px; padding:16px; border-left:3px solid {{ color }};">
+                    <div style="font-size:15px; font-weight:700; color:#0f172a; margin-bottom:4px;">{{ metric }}</div>
+                    <div style="font-size:12px; font-family:monospace; background:white; padding:4px 8px; border-radius:4px; color:{{ color }}; margin-bottom:8px; display:inline-block;">{{ formula }}</div>
+                    <p style="font-size:13px; color:#475569; margin:0; line-height:1.6;">{{ desc }}</p>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Simple ANN diagram using Plotly
+const layers = [
+    {name: 'Input\n(8)', x: 0, neurons: 4, color: '#0d6efd'},
+    {name: 'Hidden 1\n(64)', x: 1, neurons: 5, color: '#6f42c1'},
+    {name: 'Hidden 2\n(32)', x: 2, neurons: 4, color: '#6f42c1'},
+    {name: 'Output\n(1)', x: 3, neurons: 1, color: '#198754'},
+];
+
+const shapes = [], annotations = [];
+layers.forEach(layer => {
+    const spacing = 1 / (layer.neurons + 1);
+    for (let i = 0; i < layer.neurons; i++) {
+        const y = (i + 1) * spacing;
+        shapes.push({
+            type: 'circle', xref: 'x', yref: 'y',
+            x0: layer.x - 0.06, x1: layer.x + 0.06,
+            y0: y - 0.04, y1: y + 0.04,
+            fillcolor: layer.color, line: {color: layer.color}
+        });
+    }
+    annotations.push({
+        x: layer.x, y: -0.08, xref: 'x', yref: 'y',
+        text: layer.name, showarrow: false,
+        font: {size: 11, color: '#64748b'}, align: 'center'
+    });
+});
+
+Plotly.newPlot('annDiagram', [], {
+    shapes, annotations,
+    xaxis: {visible: false, range: [-0.3, 3.3]},
+    yaxis: {visible: false, range: [-0.15, 1.1]},
+    margin: {t: 10, b: 40, l: 10, r: 10},
+    paper_bgcolor: 'transparent', plot_bgcolor: 'transparent',
+    height: 200
+}, {responsive: true, displayModeBar: false});
+</script>
+{% endblock %}

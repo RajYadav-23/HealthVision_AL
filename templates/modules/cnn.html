@@ -1,0 +1,205 @@
+{% extends "base.html" %}
+{% block title %}CNN Classifier – HealthVision AI{% endblock %}
+{% block page_title %}<span>CNN Image Classifier</span><small>Brain Tumor MRI Classification</small>{% endblock %}
+
+{% block content %}
+<div class="row g-3">
+    <!-- Upload & Predict -->
+    <div class="col-lg-4">
+        <div class="content-card" style="margin-bottom:16px;">
+            <div class="card-header"><h6><i class="fa-solid fa-upload"></i> Upload Brain MRI Image</h6></div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('cnn.predict') }}" enctype="multipart/form-data" id="cnnForm">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="upload-zone" id="imgDropZone" onclick="document.getElementById('imgInput').click()">
+                        <div id="imgPreview">
+                            {% if image_url %}
+                            <img src="{{ image_url }}" style="max-width:100%; max-height:160px; border-radius:8px; margin-bottom:8px;">
+                            {% else %}
+                            <i class="fa-solid fa-brain"></i>
+                            {% endif %}
+                        </div>
+                        <p>Click to upload Brain MRI scan</p>
+                        <span>PNG, JPG, JPEG supported</span>
+                        <input type="file" name="image" id="imgInput" accept=".png,.jpg,.jpeg" style="display:none;" onchange="previewImg(this)">
+                    </div>
+                    <button type="submit" class="btn-hv btn-hv-primary" style="width:100%; justify-content:center; margin-top:12px;">
+                        <i class="fa-solid fa-magnifying-glass"></i> Classify Image
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Classes Info -->
+        <div class="content-card" style="margin-bottom:16px;">
+            <div class="card-header"><h6><i class="fa-solid fa-tags"></i> Tumor Classes</h6></div>
+            <div class="card-body">
+                {% for cls, color, desc in [
+                    ('Glioma', 'var(--danger)', 'Tumor in brain/spinal cord'),
+                    ('Meningioma', '#d97706', 'Tumor on brain membranes'),
+                    ('No Tumor', 'var(--success)', 'Normal MRI scan'),
+                    ('Pituitary', '#6f42c1', 'Tumor in pituitary gland'),
+                ] %}
+                <div style="display:flex; align-items:center; gap:10px; padding:8px 0; border-bottom:1px solid #f1f5f9; font-size:13px;">
+                    <div style="width:10px; height:10px; border-radius:50%; background:{{ color }}; flex-shrink:0;"></div>
+                    <strong>{{ cls }}</strong>
+                    <span style="color:#94a3b8; font-size:11px; margin-left:auto;">{{ desc }}</span>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- CNN Architecture -->
+        <div class="content-card">
+            <div class="card-header"><h6><i class="fa-solid fa-circle-info"></i> CNN Architecture</h6></div>
+            <div class="card-body">
+                {% for layer, desc, color in [
+                    ('Conv2D 32 + BN', 'Feature extraction layer 1', 'var(--primary)'),
+                    ('MaxPooling', 'Spatial downsampling', '#6f42c1'),
+                    ('Conv2D 64 + BN', 'Feature extraction layer 2', 'var(--primary)'),
+                    ('MaxPooling', 'Spatial downsampling', '#6f42c1'),
+                    ('Conv2D 128 + BN', 'Deep feature extraction', 'var(--primary)'),
+                    ('MaxPooling', 'Spatial downsampling', '#6f42c1'),
+                    ('Conv2D 256', 'High-level features', 'var(--primary)'),
+                    ('Flatten', 'Convert to 1D vector', 'var(--teal-dark)'),
+                    ('Dense 512', 'Fully connected layer', 'var(--success)'),
+                    ('Dropout 0.5', 'Regularization', '#d97706'),
+                    ('Dense 4 + Softmax', '4-class output', 'var(--danger)'),
+                ] %}
+                <div style="display:flex; align-items:center; gap:10px; padding:6px 0; border-bottom:1px solid #f1f5f9; font-size:12px;">
+                    <div style="width:8px; height:8px; border-radius:50%; background:{{ color }}; flex-shrink:0;"></div>
+                    <strong>{{ layer }}</strong>
+                    <span style="color:#94a3b8; font-size:11px; margin-left:auto;">{{ desc }}</span>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Results -->
+    <div class="col-lg-8">
+        {% if result %}
+        <div class="prediction-result {{ 'positive' if result.prediction != 'No Tumor' else 'negative' }}" style="margin-bottom:16px;">
+            <div class="result-icon">{{ '🧠' if result.prediction != 'No Tumor' else '✅' }}</div>
+            <div class="result-title" style="color:{% if result.prediction != 'No Tumor' %}var(--danger){% else %}var(--success){% endif %};">
+                {{ result.prediction }} Detected
+            </div>
+            <div class="result-subtitle">{{ result.explanation }}</div>
+            <div style="display:flex; justify-content:center; gap:32px; margin-top:20px; flex-wrap:wrap;">
+                <div style="text-align:center;">
+                    <div style="font-size:28px; font-weight:800; color:var(--primary);">{{ result.confidence }}%</div>
+                    <div style="font-size:12px; color:#64748b;">Confidence</div>
+                </div>
+                <div style="text-align:center;">
+                    <div style="font-size:28px; font-weight:800; color:{% if result.risk_level == 'High' %}var(--danger){% elif result.risk_level == 'Medium' %}#d97706{% else %}var(--success){% endif %};">
+                        {{ result.risk_level }}
+                    </div>
+                    <div style="font-size:12px; color:#64748b;">Risk Level</div>
+                </div>
+            </div>
+
+            <!-- Probability bars for all 4 classes -->
+            <div style="margin-top:24px; max-width:360px; margin-left:auto; margin-right:auto;">
+                {% set bar_colors = {'Glioma':'var(--danger)','Meningioma':'#d97706','No Tumor':'var(--success)','Pituitary':'#6f42c1'} %}
+                {% for cls, prob in result.all_probs.items() %}
+                <div style="margin-bottom:10px;">
+                    <div style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:4px;">
+                        <span style="font-weight:{% if cls == result.prediction %}700{% else %}400{% endif %};">{{ cls }}</span>
+                        <span>{{ prob }}%</span>
+                    </div>
+                    <div class="hv-progress">
+                        <div class="hv-progress-bar" style="width:{{ prob }}%; background:{{ bar_colors[cls] }};"></div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        {% if metrics %}
+        <div class="row g-2 mb-3">
+            {% for label, val, color in [
+                ('Accuracy', ((metrics.get('accuracy', 0) * 100))|round(1)|string + '%', 'var(--primary)'),
+                ('Precision', ((metrics.get('precision', 0) * 100))|round(1)|string + '%', 'var(--teal-dark)'),
+                ('Recall', ((metrics.get('recall', 0) * 100))|round(1)|string + '%', 'var(--success)'),
+                ('F1 Score', ((metrics.get('f1', 0) * 100))|round(1)|string + '%', '#6f42c1'),
+            ] %}
+            <div class="col">
+                <div class="metric-card">
+                    <div class="metric-value" style="color:{{ color }};">{{ val }}</div>
+                    <div class="metric-label">{{ label }}</div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        {% if charts %}
+        <div class="row g-3">
+            <div class="col-md-6">
+                <div class="content-card">
+                    <div class="card-header"><h6><i class="fa-solid fa-chart-line"></i> Training Accuracy</h6></div>
+                    <div class="card-body"><div id="cnnAccChart"></div></div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="content-card">
+                    <div class="card-header"><h6><i class="fa-solid fa-chart-line"></i> Training Loss</h6></div>
+                    <div class="card-body"><div id="cnnLossChart"></div></div>
+                </div>
+            </div>
+            {% if charts.cm is defined %}
+            <div class="col-12">
+                <div class="content-card">
+                    <div class="card-header"><h6><i class="fa-solid fa-table-cells"></i> Confusion Matrix</h6></div>
+                    <div class="card-body"><div id="cnnCmChart"></div></div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        {% else %}
+        <div class="content-card">
+            <div class="card-body" style="text-align:center; padding:60px 20px; color:#94a3b8;">
+                <i class="fa-solid fa-brain" style="font-size:56px; margin-bottom:16px; display:block; opacity:0.2;"></i>
+                <p style="font-size:15px;">CNN model not trained yet.</p>
+                <p style="font-size:13px;">Run <code>notebooks/train_cnn.ipynb</code> after downloading the dataset.</p>
+                <div class="hv-alert info" style="text-align:left; margin-top:16px;">
+                    <i class="fa-solid fa-circle-info"></i>
+                    Download <strong>Brain Tumor MRI Dataset</strong> from Kaggle and place it in
+                    <code>datasets/brain_tumor/</code>, then run the training notebook.
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{% if charts %}
+<script>
+function renderChart(id, json) {
+    const fig = JSON.parse(json);
+    Plotly.newPlot(id, fig.data, {...fig.layout, paper_bgcolor:'transparent', font:{family:'Inter'}}, {responsive:true, displayModeBar:false});
+}
+renderChart('cnnAccChart', {{ charts.acc | safe }});
+renderChart('cnnLossChart', {{ charts.loss | safe }});
+{% if charts.cm is defined %}
+renderChart('cnnCmChart', {{ charts.cm | safe }});
+{% endif %}
+</script>
+{% endif %}
+<script>
+function previewImg(input) {
+    if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = e => {
+            const preview = document.getElementById('imgPreview');
+            preview.innerHTML = `<img src="${e.target.result}" style="max-width:100%;max-height:160px;border-radius:8px;margin-bottom:8px;"><p>Image ready</p>`;
+        };
+        reader.readAsDataURL(input.files[0]);
+        document.getElementById('cnnForm').submit();
+    }
+}
+</script>
+{% endblock %}

@@ -1,0 +1,155 @@
+{% extends "base.html" %}
+{% block title %}Preprocessing – HealthVision AI{% endblock %}
+{% block page_title %}<span>Data Preprocessing</span><small>Clean and transform your dataset</small>{% endblock %}
+
+{% block content %}
+{% if not has_data %}
+<div class="hv-alert warning">
+    <i class="fa-solid fa-triangle-exclamation"></i>
+    Please upload a dataset in <a href="{{ url_for('explorer.index') }}">Dataset Explorer</a> first.
+</div>
+{% else %}
+<div class="row g-3">
+    <!-- Controls -->
+    <div class="col-lg-4">
+        <div class="content-card">
+            <div class="card-header"><h6><i class="fa-solid fa-sliders"></i> Preprocessing Options</h6></div>
+            <div class="card-body">
+                <div class="hv-alert info" style="margin-bottom:16px;">
+                    <i class="fa-solid fa-circle-info"></i>
+                    Dataset: <strong>{{ shape[0] }} rows × {{ shape[1] }} cols</strong>
+                </div>
+
+                <form method="POST">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                    <p style="font-size:12px; font-weight:700; color:#64748b; text-transform:uppercase; letter-spacing:0.8px; margin-bottom:12px;">Missing Values</p>
+                    <label style="display:flex; align-items:flex-start; gap:10px; margin-bottom:10px; cursor:pointer;">
+                        <input type="checkbox" name="actions" value="drop_missing" style="margin-top:2px;">
+                        <div>
+                            <div style="font-size:13px; font-weight:600;">Drop Missing Rows</div>
+                            <div style="font-size:11px; color:#94a3b8;">Remove all rows containing null values</div>
+                        </div>
+                    </label>
+                    <label style="display:flex; align-items:flex-start; gap:10px; margin-bottom:16px; cursor:pointer;">
+                        <input type="checkbox" name="actions" value="fill_missing" style="margin-top:2px;">
+                        <div>
+                            <div style="font-size:13px; font-weight:600;">Fill Missing Values</div>
+                            <div style="font-size:11px; color:#94a3b8;">Median for numeric, mode for categorical</div>
+                        </div>
+                    </label>
+
+                    <p style="font-size:12px; font-weight:700; color:#64748b; text-transform:uppercase; letter-spacing:0.8px; margin-bottom:12px;">Cleaning</p>
+                    <label style="display:flex; align-items:flex-start; gap:10px; margin-bottom:16px; cursor:pointer;">
+                        <input type="checkbox" name="actions" value="drop_duplicates" style="margin-top:2px;">
+                        <div>
+                            <div style="font-size:13px; font-weight:600;">Remove Duplicates</div>
+                            <div style="font-size:11px; color:#94a3b8;">Drop exact duplicate rows</div>
+                        </div>
+                    </label>
+
+                    <p style="font-size:12px; font-weight:700; color:#64748b; text-transform:uppercase; letter-spacing:0.8px; margin-bottom:12px;">Encoding</p>
+                    <label style="display:flex; align-items:flex-start; gap:10px; margin-bottom:16px; cursor:pointer;">
+                        <input type="checkbox" name="actions" value="label_encode" style="margin-top:2px;">
+                        <div>
+                            <div style="font-size:13px; font-weight:600;">Label Encoding</div>
+                            <div style="font-size:11px; color:#94a3b8;">Convert text categories to numbers</div>
+                        </div>
+                    </label>
+
+                    <p style="font-size:12px; font-weight:700; color:#64748b; text-transform:uppercase; letter-spacing:0.8px; margin-bottom:12px;">Scaling</p>
+                    <label style="display:flex; align-items:flex-start; gap:10px; margin-bottom:16px; cursor:pointer;">
+                        <input type="checkbox" name="actions" value="scale" style="margin-top:2px;">
+                        <div>
+                            <div style="font-size:13px; font-weight:600;">Standard Scaling</div>
+                            <div style="font-size:11px; color:#94a3b8;">Normalize features to mean=0, std=1</div>
+                        </div>
+                    </label>
+
+                    <p style="font-size:12px; font-weight:700; color:#64748b; text-transform:uppercase; letter-spacing:0.8px; margin-bottom:12px;">Split</p>
+                    <label style="display:flex; align-items:flex-start; gap:10px; margin-bottom:10px; cursor:pointer;">
+                        <input type="checkbox" name="actions" value="split" style="margin-top:2px;">
+                        <div>
+                            <div style="font-size:13px; font-weight:600;">Train/Test Split</div>
+                            <div style="font-size:11px; color:#94a3b8;">Split data for model training</div>
+                        </div>
+                    </label>
+                    <div class="hv-form-group">
+                        <label>Test Size</label>
+                        <select name="test_size" class="hv-input">
+                            <option value="0.1">10%</option>
+                            <option value="0.2" selected>20%</option>
+                            <option value="0.25">25%</option>
+                            <option value="0.3">30%</option>
+                        </select>
+                    </div>
+
+                    <button type="submit" class="btn-hv btn-hv-primary" style="width:100%; justify-content:center; margin-top:8px;">
+                        <i class="fa-solid fa-play"></i> Apply Preprocessing
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Results -->
+    <div class="col-lg-8">
+        {% if steps %}
+        <div class="content-card" style="margin-bottom:16px;">
+            <div class="card-header"><h6><i class="fa-solid fa-list-check"></i> Applied Steps</h6></div>
+            <div class="card-body">
+                {% for step in steps %}
+                <div style="display:flex; gap:14px; padding:14px 0; border-bottom:1px solid #f1f5f9;" class="fade-in-up">
+                    <div style="width:40px; height:40px; border-radius:10px; background:rgba(0,0,0,0.04); display:flex; align-items:center; justify-content:center; flex-shrink:0; color:{{ step.color }};">
+                        <i class="fa-solid {{ step.icon }}"></i>
+                    </div>
+                    <div>
+                        <div style="font-size:14px; font-weight:700; color:#0f172a;">{{ step.name }}</div>
+                        <div style="font-size:13px; color:#64748b; margin-top:2px;">{{ step.desc }}</div>
+                        <div style="font-size:12px; color:#94a3b8; margin-top:4px;"><i class="fa-solid fa-arrow-right" style="font-size:10px;"></i> {{ step.detail }}</div>
+                    </div>
+                    <div style="margin-left:auto;">
+                        <i class="fa-solid fa-circle-check" style="color:var(--success); font-size:18px;"></i>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        {% if result_info %}
+        <div class="content-card" style="margin-bottom:16px;">
+            <div class="card-header">
+                <h6><i class="fa-solid fa-table"></i> Processed Dataset Preview</h6>
+                <div style="display:flex; gap:8px; font-size:12px; color:#64748b;">
+                    <span>{{ result_info.original_shape[0] }}×{{ result_info.original_shape[1] }} → </span>
+                    <span style="color:var(--success); font-weight:600;">{{ result_info.final_shape[0] }}×{{ result_info.final_shape[1] }}</span>
+                </div>
+            </div>
+            <div class="card-body" style="overflow-x:auto; padding:0;">
+                <table class="hv-table">
+                    <thead><tr>{% for col in result_info.columns %}<th>{{ col }}</th>{% endfor %}</tr></thead>
+                    <tbody>
+                        {% for row in result_info.preview %}
+                        <tr>{% for col in result_info.columns %}<td>{{ row[col] | round(3) if row[col] is number else row[col] }}</td>{% endfor %}</tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="hv-alert success">
+            <i class="fa-solid fa-circle-check"></i>
+            Processed dataset saved. You can now use it for <a href="{{ url_for('ann.index') }}">ANN Training</a>.
+        </div>
+        {% else %}
+        <div class="content-card">
+            <div class="card-body" style="text-align:center; padding:60px 20px; color:#94a3b8;">
+                <i class="fa-solid fa-sliders" style="font-size:48px; margin-bottom:16px; display:block; opacity:0.3;"></i>
+                <p>Select preprocessing steps and click <strong>Apply</strong> to see results.</p>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+{% endblock %}

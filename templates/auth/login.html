@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign In – HealthVision AI</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/main.css') }}" rel="stylesheet">
+</head>
+<body>
+<div class="auth-wrapper">
+    <!-- Left Panel -->
+    <div class="auth-left">
+        <div style="max-width:420px; color:white; text-align:center;">
+            <div style="font-size:72px; margin-bottom:24px;">
+                <i class="fa-solid fa-heart-pulse" style="color:#0dcaf0;"></i>
+            </div>
+            <h2 style="font-size:32px; font-weight:800; margin-bottom:16px;">HealthVision AI</h2>
+            <p style="font-size:16px; color:rgba(255,255,255,0.65); line-height:1.7;">
+                An intelligent healthcare analytics platform powered by ANN & CNN models for disease prediction and medical image classification.
+            </p>
+            <div style="display:flex; gap:16px; justify-content:center; margin-top:36px; flex-wrap:wrap;">
+                <div style="background:rgba(255,255,255,0.08); border-radius:12px; padding:16px 20px; text-align:center;">
+                    <div style="font-size:22px; font-weight:800; color:#0dcaf0;">ANN</div>
+                    <div style="font-size:12px; color:rgba(255,255,255,0.5); margin-top:2px;">Disease Prediction</div>
+                </div>
+                <div style="background:rgba(255,255,255,0.08); border-radius:12px; padding:16px 20px; text-align:center;">
+                    <div style="font-size:22px; font-weight:800; color:#0dcaf0;">CNN</div>
+                    <div style="font-size:12px; color:rgba(255,255,255,0.5); margin-top:2px;">Image Classification</div>
+                </div>
+                <div style="background:rgba(255,255,255,0.08); border-radius:12px; padding:16px 20px; text-align:center;">
+                    <div style="font-size:22px; font-weight:800; color:#0dcaf0;">ML</div>
+                    <div style="font-size:12px; color:rgba(255,255,255,0.5); margin-top:2px;">Analytics</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Panel -->
+    <div class="auth-right">
+        <div class="auth-logo">
+            <div class="logo-icon"><i class="fa-solid fa-heart-pulse"></i></div>
+            <div class="logo-text">
+                <h4>HealthVision AI</h4>
+                <small>Medical Analytics Platform</small>
+            </div>
+        </div>
+
+        <h2 class="auth-title">Welcome back</h2>
+        <p class="auth-subtitle">Sign in to your account to continue</p>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% for category, message in messages %}
+                <div class="hv-alert {{ category }}">
+                    <i class="fa-solid {% if category == 'success' %}fa-circle-check{% elif category == 'danger' %}fa-circle-xmark{% else %}fa-circle-info{% endif %}"></i>
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endwith %}
+
+        <form method="POST" action="{{ url_for('auth.login') }}" novalidate>
+            {{ form.hidden_tag() }}
+
+            <div class="hv-form-group">
+                {{ form.email.label(class="") }}
+                {{ form.email(class="hv-input" + (" is-invalid" if form.email.errors else ""), placeholder="you@example.com") }}
+                {% for e in form.email.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+            </div>
+
+            <div class="hv-form-group">
+                {{ form.password.label(class="") }}
+                <div style="position:relative;">
+                    {{ form.password(class="hv-input" + (" is-invalid" if form.password.errors else ""), placeholder="••••••••", id="passwordField") }}
+                    <button type="button" onclick="togglePwd()" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;color:#94a3b8;cursor:pointer;">
+                        <i class="fa-regular fa-eye" id="eyeIcon"></i>
+                    </button>
+                </div>
+                {% for e in form.password.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+            </div>
+
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:22px;">
+                <label style="display:flex; align-items:center; gap:8px; font-size:13px; color:#64748b; cursor:pointer;">
+                    {{ form.remember() }} Remember me
+                </label>
+            </div>
+
+            <button type="submit" class="btn-hv btn-hv-primary" style="width:100%; justify-content:center; padding:12px;">
+                <i class="fa-solid fa-right-to-bracket"></i> Sign In
+            </button>
+        </form>
+
+        <p class="auth-footer-text">
+            Don't have an account? <a href="{{ url_for('auth.register') }}">Create one</a>
+        </p>
+    </div>
+</div>
+
+<script>
+function togglePwd() {
+    const f = document.getElementById('passwordField');
+    const i = document.getElementById('eyeIcon');
+    if (f.type === 'password') { f.type = 'text'; i.className = 'fa-regular fa-eye-slash'; }
+    else { f.type = 'password'; i.className = 'fa-regular fa-eye'; }
+}
+</script>
+</body>
+</html>

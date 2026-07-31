@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+{% block title %}Visualization – HealthVision AI{% endblock %}
+{% block page_title %}<span>Data Visualization</span><small>Interactive charts powered by Plotly</small>{% endblock %}
+
+{% block content %}
+<div class="row g-3">
+    <!-- Controls -->
+    <div class="col-lg-3">
+        <div class="content-card" style="position:sticky; top:80px;">
+            <div class="card-header"><h6><i class="fa-solid fa-sliders"></i> Chart Controls</h6></div>
+            <div class="card-body">
+                {% if not has_data %}
+                <div class="hv-alert warning">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                    Upload a dataset in <a href="{{ url_for('explorer.index') }}">Dataset Explorer</a> first.
+                </div>
+                {% else %}
+                <form method="POST" id="chartForm">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                    <div class="hv-form-group">
+                        <label>Chart Type</label>
+                        <select name="chart_type" class="hv-input" onchange="updateFields()">
+                            {% for val, label in [
+                                ('histogram','Histogram'), ('box','Box Plot'),
+                                ('scatter','Scatter Plot'), ('pie','Pie Chart'),
+                                ('heatmap','Correlation Heatmap'), ('bar','Bar Chart'),
+                                ('line','Line Chart'), ('violin','Violin Plot')
+                            ] %}
+                            <option value="{{ val }}" {% if chart_type == val %}selected{% endif %}>{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="hv-form-group" id="xField">
+                        <label>X Axis / Column</label>
+                        <select name="col_x" class="hv-input">
+                            <option value="">-- Select --</option>
+                            {% for c in all_cols %}
+                            <option value="{{ c }}" {% if col_x == c %}selected{% endif %}>{{ c }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="hv-form-group" id="yField">
+                        <label>Y Axis (optional)</label>
+                        <select name="col_y" class="hv-input">
+                            <option value="">-- None --</option>
+                            {% for c in num_cols %}
+                            <option value="{{ c }}" {% if col_y == c %}selected{% endif %}>{{ c }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="hv-form-group" id="colorField">
+                        <label>Color By (optional)</label>
+                        <select name="col_color" class="hv-input">
+                            <option value="">-- None --</option>
+                            {% for c in all_cols %}
+                            <option value="{{ c }}" {% if col_color == c %}selected{% endif %}>{{ c }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <button type="submit" class="btn-hv btn-hv-primary" style="width:100%; justify-content:center;">
+                        <i class="fa-solid fa-chart-bar"></i> Generate Chart
+                    </button>
+                </form>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Chart Display -->
+    <div class="col-lg-9">
+        <div class="content-card">
+            <div class="card-header">
+                <h6><i class="fa-solid fa-chart-area"></i> Chart Output</h6>
+                {% if chart_json %}
+                <button onclick="Plotly.downloadImage('chartOutput', {format:'png', filename:'chart'})" class="btn-hv btn-hv-outline" style="padding:6px 14px; font-size:12px;">
+                    <i class="fa-solid fa-download"></i> Export
+                </button>
+                {% endif %}
+            </div>
+            <div class="card-body">
+                {% if chart_json %}
+                <div id="chartOutput" style="min-height:420px;"></div>
+                {% else %}
+                <div style="text-align:center; padding:80px 20px; color:#94a3b8;">
+                    <i class="fa-solid fa-chart-area" style="font-size:48px; margin-bottom:16px; display:block; opacity:0.3;"></i>
+                    <p style="font-size:15px;">Select options and click <strong>Generate Chart</strong></p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Chart Type Guide -->
+        <div class="content-card" style="margin-top:16px;">
+            <div class="card-header"><h6><i class="fa-solid fa-circle-info"></i> Chart Guide</h6></div>
+            <div class="card-body">
+                <div class="row g-2">
+                    {% for icon, name, desc in [
+                        ('fa-chart-bar','Histogram','Distribution of a single numeric column'),
+                        ('fa-box','Box Plot','Spread and outliers of numeric data'),
+                        ('fa-circle-dot','Scatter Plot','Relationship between two numeric columns'),
+                        ('fa-chart-pie','Pie Chart','Proportion of categories'),
+                        ('fa-fire','Heatmap','Correlation between all numeric columns'),
+                        ('fa-chart-column','Bar Chart','Count or value comparison across categories'),
+                        ('fa-chart-line','Line Chart','Trend over a sequence'),
+                        ('fa-violin','Violin Plot','Distribution shape with density'),
+                    ] %}
+                    <div class="col-md-3 col-6">
+                        <div style="background:#f8fafc; border-radius:8px; padding:12px; font-size:12px;">
+                            <i class="fa-solid {{ icon }}" style="color:var(--primary); margin-bottom:4px; display:block;"></i>
+                            <strong>{{ name }}</strong><br>
+                            <span style="color:#94a3b8;">{{ desc }}</span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{% if chart_json %}
+<script>
+const fig = {{ chart_json | safe }};
+Plotly.newPlot('chartOutput', fig.data, {
+    ...fig.layout,
+    paper_bgcolor: 'transparent',
+    font: {family: 'Inter, sans-serif'}
+}, {responsive: true});
+</script>
+{% endif %}
+<script>
+function updateFields() {
+    const t = document.querySelector('[name=chart_type]').value;
+    const hideY = ['histogram','pie','heatmap','violin'].includes(t);
+    document.getElementById('yField').style.display = hideY ? 'none' : '';
+    document.getElementById('xField').style.display = t === 'heatmap' ? 'none' : '';
+}
+updateFields();
+</script>
+{% endblock %}

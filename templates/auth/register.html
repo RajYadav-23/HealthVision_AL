@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register – HealthVision AI</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/main.css') }}" rel="stylesheet">
+</head>
+<body>
+<div class="auth-wrapper">
+    <!-- Left Panel -->
+    <div class="auth-left">
+        <div style="max-width:420px; color:white; text-align:center;">
+            <div style="font-size:72px; margin-bottom:24px;">
+                <i class="fa-solid fa-stethoscope" style="color:#0dcaf0;"></i>
+            </div>
+            <h2 style="font-size:32px; font-weight:800; margin-bottom:16px;">Join HealthVision AI</h2>
+            <p style="font-size:16px; color:rgba(255,255,255,0.65); line-height:1.7;">
+                Explore machine learning, deep learning, and data visualization through a real-world healthcare analytics platform.
+            </p>
+            <div style="margin-top:36px; display:flex; flex-direction:column; gap:14px; text-align:left;">
+                {% for item in [
+                    ('fa-check-circle', '#0dcaf0', 'ANN-based disease risk prediction'),
+                    ('fa-check-circle', '#0dcaf0', 'CNN medical image classification'),
+                    ('fa-check-circle', '#0dcaf0', 'Interactive data visualization'),
+                    ('fa-check-circle', '#0dcaf0', 'Full prediction history & analytics')
+                ] %}
+                <div style="display:flex; align-items:center; gap:12px; color:rgba(255,255,255,0.8); font-size:14px;">
+                    <i class="fa-solid {{ item[0] }}" style="color:{{ item[1] }};"></i> {{ item[2] }}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Panel -->
+    <div class="auth-right">
+        <div class="auth-logo">
+            <div class="logo-icon"><i class="fa-solid fa-heart-pulse"></i></div>
+            <div class="logo-text">
+                <h4>HealthVision AI</h4>
+                <small>Medical Analytics Platform</small>
+            </div>
+        </div>
+
+        <h2 class="auth-title">Create account</h2>
+        <p class="auth-subtitle">Start exploring AI-powered healthcare analytics</p>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% for category, message in messages %}
+                <div class="hv-alert {{ category }}">
+                    <i class="fa-solid fa-circle-info"></i> {{ message }}
+                </div>
+            {% endfor %}
+        {% endwith %}
+
+        <form method="POST" action="{{ url_for('auth.register') }}" novalidate>
+            {{ form.hidden_tag() }}
+
+            <div class="hv-form-group">
+                {{ form.username.label() }}
+                {{ form.username(class="hv-input" + (" is-invalid" if form.username.errors else ""), placeholder="johndoe") }}
+                {% for e in form.username.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+            </div>
+
+            <div class="hv-form-group">
+                {{ form.email.label() }}
+                {{ form.email(class="hv-input" + (" is-invalid" if form.email.errors else ""), placeholder="you@example.com") }}
+                {% for e in form.email.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+            </div>
+
+            <div class="hv-form-group">
+                {{ form.password.label() }}
+                {{ form.password(class="hv-input" + (" is-invalid" if form.password.errors else ""), placeholder="Min. 6 characters") }}
+                {% for e in form.password.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+            </div>
+
+            <div class="hv-form-group">
+                {{ form.confirm_password.label() }}
+                {{ form.confirm_password(class="hv-input" + (" is-invalid" if form.confirm_password.errors else ""), placeholder="Repeat password") }}
+                {% for e in form.confirm_password.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+            </div>
+
+            <button type="submit" class="btn-hv btn-hv-primary" style="width:100%; justify-content:center; padding:12px; margin-top:4px;">
+                <i class="fa-solid fa-user-plus"></i> Create Account
+            </button>
+        </form>
+
+        <p class="auth-footer-text">
+            Already have an account? <a href="{{ url_for('auth.login') }}">Sign in</a>
+        </p>
+    </div>
+</div>
+</body>
+</html>

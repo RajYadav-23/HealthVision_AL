@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block title %}Analytics – HealthVision AI{% endblock %}
+{% block page_title %}<span>Analytics Dashboard</span><small>Prediction trends and insights</small>{% endblock %}
+
+{% block content %}
+<!-- Stats Row -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+        <div class="stat-card blue">
+            <div class="stat-icon"><i class="fa-solid fa-chart-line"></i></div>
+            <div class="stat-value">{{ stats.total }}</div>
+            <div class="stat-label">Total Predictions</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="stat-card teal">
+            <div class="stat-icon"><i class="fa-solid fa-percent"></i></div>
+            <div class="stat-value">{{ stats.avg_confidence }}%</div>
+            <div class="stat-label">Avg Confidence</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="stat-card red">
+            <div class="stat-icon"><i class="fa-solid fa-triangle-exclamation"></i></div>
+            <div class="stat-value">{{ stats.high_risk }}</div>
+            <div class="stat-label">High Risk Cases</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="stat-card purple">
+            <div class="stat-icon"><i class="fa-solid fa-brain"></i></div>
+            <div class="stat-value">{{ stats.ann_count }}</div>
+            <div class="stat-label">ANN Predictions</div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts -->
+<div class="row g-3">
+    <div class="col-lg-8">
+        <div class="content-card">
+            <div class="card-header"><h6><i class="fa-solid fa-chart-area"></i> Prediction Timeline (Last 30 Days)</h6></div>
+            <div class="card-body"><div id="timelineChart" style="height:280px;"></div></div>
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <div class="content-card">
+            <div class="card-header"><h6><i class="fa-solid fa-chart-pie"></i> Risk Distribution</h6></div>
+            <div class="card-body"><div id="riskChart" style="height:280px;"></div></div>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="content-card">
+            <div class="card-header"><h6><i class="fa-solid fa-chart-column"></i> Model Usage</h6></div>
+            <div class="card-body"><div id="modelChart" style="height:280px;"></div></div>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="content-card">
+            <div class="card-header"><h6><i class="fa-solid fa-chart-bar"></i> Prediction Outcomes</h6></div>
+            <div class="card-body"><div id="outcomeChart" style="height:280px;"></div></div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function renderChart(id, json) {
+    const fig = JSON.parse(json);
+    Plotly.newPlot(id, fig.data, {
+        ...fig.layout,
+        paper_bgcolor: 'transparent',
+        plot_bgcolor: 'transparent',
+        font: {family: 'Inter, sans-serif', size: 12}
+    }, {responsive: true, displayModeBar: false});
+}
+renderChart('timelineChart', {{ timeline_chart | safe }});
+renderChart('riskChart', {{ risk_chart | safe }});
+renderChart('modelChart', {{ model_chart | safe }});
+renderChart('outcomeChart', {{ outcome_chart | safe }});
+</script>
+{% endblock %}

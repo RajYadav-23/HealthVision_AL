@@ -1,0 +1,177 @@
+{% extends "base.html" %}
+{% block title %}Dataset Explorer – HealthVision AI{% endblock %}
+{% block page_title %}<span>Dataset Explorer</span><small>Upload and analyze your dataset</small>{% endblock %}
+
+{% block content %}
+<div class="row g-3">
+    <!-- Upload Card -->
+    <div class="col-12">
+        <div class="content-card">
+            <div class="card-header">
+                <h6><i class="fa-solid fa-upload"></i> Upload Dataset</h6>
+                {% if filename %}<span style="font-size:12px; color:#198754;"><i class="fa-solid fa-circle-check"></i> {{ filename }}</span>{% endif %}
+            </div>
+            <div class="card-body">
+                <form method="POST" enctype="multipart/form-data" id="uploadForm">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="upload-zone" id="dropZone" onclick="document.getElementById('csvInput').click()">
+                        <i class="fa-solid fa-file-csv"></i>
+                        <p>Click to upload or drag & drop a CSV file</p>
+                        <span>Supports .csv files up to 16MB</span>
+                        <input type="file" name="csv_file" id="csvInput" accept=".csv" style="display:none;" onchange="document.getElementById('uploadForm').submit()">
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    {% if analysis %}
+    <!-- Shape & Overview -->
+    <div class="col-md-3 col-6">
+        <div class="stat-card blue">
+            <div class="stat-icon"><i class="fa-solid fa-table-cells"></i></div>
+            <div class="stat-value">{{ analysis.shape[0] }}</div>
+            <div class="stat-label">Total Rows</div>
+        </div>
+    </div>
+    <div class="col-md-3 col-6">
+        <div class="stat-card teal">
+            <div class="stat-icon"><i class="fa-solid fa-table-columns"></i></div>
+            <div class="stat-value">{{ analysis.shape[1] }}</div>
+            <div class="stat-label">Total Columns</div>
+        </div>
+    </div>
+    <div class="col-md-3 col-6">
+        <div class="stat-card red">
+            <div class="stat-icon"><i class="fa-solid fa-circle-exclamation"></i></div>
+            <div class="stat-value">{{ analysis.missing.values() | sum }}</div>
+            <div class="stat-label">Missing Values</div>
+        </div>
+    </div>
+    <div class="col-md-3 col-6">
+        <div class="stat-card orange">
+            <div class="stat-icon"><i class="fa-solid fa-copy"></i></div>
+            <div class="stat-value">{{ analysis.duplicates }}</div>
+            <div class="stat-label">Duplicate Rows</div>
+        </div>
+    </div>
+
+    <!-- Preview -->
+    <div class="col-12">
+        <div class="content-card">
+            <div class="card-header">
+                <h6><i class="fa-solid fa-eye"></i> Data Preview (First 10 Rows)</h6>
+            </div>
+            <div class="card-body" style="overflow-x:auto; padding:0;">
+                <table class="hv-table">
+                    <thead><tr>{% for col in analysis.columns %}<th>{{ col }}</th>{% endfor %}</tr></thead>
+                    <tbody>
+                        {% for row in analysis.preview %}
+                        <tr>{% for col in analysis.columns %}<td>{{ row[col] if row[col] is not none else '<span style="color:#94a3b8;">null</span>' | safe }}</td>{% endfor %}</tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Data Types & Missing Values -->
+    <div class="col-md-6">
+        <div class="content-card">
+            <div class="card-header"><h6><i class="fa-solid fa-tags"></i> Column Info</h6></div>
+            <div class="card-body" style="padding:0;">
+                <table class="hv-table">
+                    <thead><tr><th>Column</th><th>Type</th><th>Missing</th><th>Missing %</th></tr></thead>
+                    <tbody>
+                        {% for col in analysis.columns %}
+                        <tr>
+                            <td>{{ col }}</td>
+                            <td><span style="font-size:11px; background:#f1f5f9; padding:2px 8px; border-radius:4px;">{{ analysis.dtypes[col] }}</span></td>
+                            <td>{{ analysis.missing[col] }}</td>
+                            <td>
+                                <div style="display:flex; align-items:center; gap:6px;">
+                                    <div class="hv-progress" style="width:50px;">
+                                        <div class="hv-progress-bar" style="width:{{ analysis.missing_pct[col] }}%; background:{% if analysis.missing_pct[col] > 20 %}var(--danger){% elif analysis.missing_pct[col] > 5 %}var(--warning){% else %}var(--success){% endif %};"></div>
+                                    </div>
+                                    <span style="font-size:11px;">{{ analysis.missing_pct[col] }}%</span>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Summary Statistics -->
+    <div class="col-md-6">
+        <div class="content-card">
+            <div class="card-header"><h6><i class="fa-solid fa-calculator"></i> Summary Statistics</h6></div>
+            <div class="card-body" style="overflow-x:auto; padding:0;">
+                <table class="hv-table">
+                    <thead>
+                        <tr><th>Stat</th>{% for col in analysis.stats.keys() %}<th>{{ col }}</th>{% endfor %}</tr>
+                    </thead>
+                    <tbody>
+                        {% set stat_rows = ['count','mean','std','min','25%','50%','75%','max'] %}
+                        {% for stat in stat_rows %}
+                        <tr>
+                            <td><strong>{{ stat }}</strong></td>
+                            {% for col, vals in analysis.stats.items() %}
+                            <td>{{ vals[stat] if vals[stat] is not none and vals[stat] != '' else '—' }}</td>
+                            {% endfor %}
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Correlation Heatmap -->
+    <div class="col-12">
+        <div class="content-card">
+            <div class="card-header"><h6><i class="fa-solid fa-fire"></i> Correlation Matrix</h6></div>
+            <div class="card-body">
+                <div id="corrHeatmap" style="height:380px;"></div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{% if analysis %}
+<script>
+const corrData = {{ analysis.corr | tojson }};
+const cols = {{ analysis.corr_cols | tojson }};
+const z = cols.map(r => cols.map(c => corrData[r][c] ?? null));
+Plotly.newPlot('corrHeatmap', [{
+    z, x: cols, y: cols, type: 'heatmap',
+    colorscale: 'RdBu', zmin: -1, zmax: 1,
+    text: z.map(row => row.map(v => v !== null ? v.toFixed(2) : '')),
+    texttemplate: '%{text}', textfont: {size: 10}
+}], {
+    margin: {t:10,b:80,l:80,r:10},
+    paper_bgcolor: 'transparent', plot_bgcolor: 'transparent',
+    font: {family: 'Inter', size: 11}
+}, {responsive: true, displayModeBar: false});
+</script>
+{% endif %}
+<script>
+const dz = document.getElementById('dropZone');
+dz?.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('dragover'); });
+dz?.addEventListener('dragleave', () => dz.classList.remove('dragover'));
+dz?.addEventListener('drop', e => {
+    e.preventDefault(); dz.classList.remove('dragover');
+    const f = e.dataTransfer.files[0];
+    if (f) {
+        const dt = new DataTransfer(); dt.items.add(f);
+        document.getElementById('csvInput').files = dt.files;
+        document.getElementById('uploadForm').submit();
+    }
+});
+</script>
+{% endblock %}

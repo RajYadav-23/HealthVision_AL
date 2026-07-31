@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+{% block title %}Prediction History – HealthVision AI{% endblock %}
+{% block page_title %}<span>Prediction History</span><small>All predictions stored in the database</small>{% endblock %}
+
+{% block content %}
+<div class="content-card">
+    <div class="card-header">
+        <h6><i class="fa-solid fa-clock-rotate-left"></i> All Predictions ({{ pagination.total }})</h6>
+        <div style="display:flex; gap:8px;">
+            <a href="{{ url_for('history.export') }}" class="btn-hv btn-hv-outline" style="padding:7px 14px; font-size:12px;">
+                <i class="fa-solid fa-download"></i> Export CSV
+            </a>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div style="padding:16px 22px; border-bottom:1px solid #f1f5f9; display:flex; gap:12px; flex-wrap:wrap;">
+        <form method="GET" style="display:flex; gap:10px; flex-wrap:wrap; flex:1;">
+            <input type="text" name="q" value="{{ q }}" placeholder="Search predictions..." class="hv-input" style="max-width:220px;">
+            <select name="model" class="hv-input" style="max-width:140px;">
+                <option value="">All Models</option>
+                <option value="ANN" {% if model_filter == 'ANN' %}selected{% endif %}>ANN</option>
+                <option value="CNN" {% if model_filter == 'CNN' %}selected{% endif %}>CNN</option>
+            </select>
+            <select name="risk" class="hv-input" style="max-width:140px;">
+                <option value="">All Risk Levels</option>
+                <option value="Low" {% if risk_filter == 'Low' %}selected{% endif %}>Low</option>
+                <option value="Medium" {% if risk_filter == 'Medium' %}selected{% endif %}>Medium</option>
+                <option value="High" {% if risk_filter == 'High' %}selected{% endif %}>High</option>
+            </select>
+            <button type="submit" class="btn-hv btn-hv-primary" style="padding:8px 16px;">
+                <i class="fa-solid fa-magnifying-glass"></i> Filter
+            </button>
+            {% if q or model_filter or risk_filter %}
+            <a href="{{ url_for('history.index') }}" class="btn-hv btn-hv-outline" style="padding:8px 16px;">
+                <i class="fa-solid fa-xmark"></i> Clear
+            </a>
+            {% endif %}
+        </form>
+    </div>
+
+    <div style="overflow-x:auto;">
+        {% if predictions %}
+        <table class="hv-table">
+            <thead>
+                <tr>
+                    <th>#</th><th>User</th><th>Model</th><th>Prediction</th>
+                    <th>Confidence</th><th>Risk Level</th><th>Date</th><th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in predictions %}
+                <tr>
+                    <td style="color:#94a3b8; font-size:12px;">{{ p.id }}</td>
+                    <td>
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <div style="width:28px; height:28px; border-radius:50%; background:linear-gradient(135deg,var(--primary),var(--teal)); display:flex; align-items:center; justify-content:center; color:white; font-size:11px; font-weight:700;">
+                                {{ p.user.username[0].upper() }}
+                            </div>
+                            {{ p.user.username }}
+                        </div>
+                    </td>
+                    <td><span class="badge-model {{ p.model_type | lower }}">{{ p.model_type }}</span></td>
+                    <td><strong>{{ p.prediction }}</strong></td>
+                    <td>
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <div class="hv-progress" style="width:70px;">
+                                <div class="hv-progress-bar" style="width:{{ (p.confidence*100)|round|int }}%; background:var(--primary);"></div>
+                            </div>
+                            <span style="font-size:12px; font-weight:600;">{{ (p.confidence*100)|round(1) }}%</span>
+                        </div>
+                    </td>
+                    <td><span class="badge-risk {{ (p.risk_level or 'low') | lower }}">{{ p.risk_level or 'N/A' }}</span></td>
+                    <td style="font-size:12px; color:#64748b;">{{ p.created_at.strftime('%b %d, %Y %H:%M') }}</td>
+                    <td>
+                        <form method="POST" action="{{ url_for('history.delete', pid=p.id) }}" onsubmit="return confirm('Delete this prediction?')">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="btn-hv btn-hv-danger" style="padding:5px 10px; font-size:11px;">
+                                <i class="fa-solid fa-trash"></i>
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div style="text-align:center; padding:60px 20px; color:#94a3b8;">
+            <i class="fa-solid fa-database" style="font-size:40px; margin-bottom:12px; display:block; opacity:0.3;"></i>
+            <p>No predictions found. <a href="{{ url_for('ann.index') }}" style="color:var(--primary);">Make your first prediction →</a></p>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Pagination -->
+    {% if pagination.pages > 1 %}
+    <div style="padding:16px 22px; border-top:1px solid #f1f5f9; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;">
+        <div style="font-size:13px; color:#64748b;">
+            Showing {{ ((pagination.page-1)*15)+1 }}–{{ [pagination.page*15, pagination.total] | min }} of {{ pagination.total }}
+        </div>
+        <div style="display:flex; gap:6px; flex-wrap:wrap;">
+            {% if pagination.has_prev %}
+            <a href="{{ url_for('history.index', page=pagination.prev_num, q=q, model=model_filter, risk=risk_filter) }}"
+               class="btn-hv btn-hv-outline" style="padding:6px 12px; font-size:12px;">
+                <i class="fa-solid fa-chevron-left"></i> Prev
+            </a>
+            {% endif %}
+            {% for p in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+                {% if p %}
+                <a href="{{ url_for('history.index', page=p, q=q, model=model_filter, risk=risk_filter) }}"
+                   style="padding:6px 12px; border-radius:8px; font-size:12px; font-weight:600;
+                          background:{% if p == pagination.page %}var(--primary){% else %}white{% endif %};
+                          color:{% if p == pagination.page %}white{% else %}#64748b{% endif %};
+                          border:1.5px solid {% if p == pagination.page %}var(--primary){% else %}#e2e8f0{% endif %};
+                          text-decoration:none;">{{ p }}</a>
+                {% else %}
+                <span style="padding:6px 4px; color:#94a3b8;">…</span>
+                {% endif %}
+            {% endfor %}
+            {% if pagination.has_next %}
+            <a href="{{ url_for('history.index', page=pagination.next_num, q=q, model=model_filter, risk=risk_filter) }}"
+               class="btn-hv btn-hv-outline" style="padding:6px 12px; font-size:12px;">
+                Next <i class="fa-solid fa-chevron-right"></i>
+            </a>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

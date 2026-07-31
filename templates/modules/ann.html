@@ -1,0 +1,210 @@
+{% extends "base.html" %}
+{% block title %}ANN Prediction – HealthVision AI{% endblock %}
+{% block page_title %}<span>ANN Disease Prediction</span><small>Artificial Neural Network – Diabetes Risk</small>{% endblock %}
+
+{% block content %}
+<div class="row g-3">
+    <!-- Train Panel -->
+    <div class="col-lg-4">
+        <div class="content-card" style="margin-bottom:16px;">
+            <div class="card-header"><h6><i class="fa-solid fa-dumbbell"></i> Train Model</h6></div>
+            <div class="card-body">
+                <div class="hv-alert info" style="margin-bottom:16px;">
+                    <i class="fa-solid fa-circle-info"></i>
+                    Uses the Pima Indians Diabetes dataset by default.
+                </div>
+                <form method="POST" action="{{ url_for('ann.train') }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="hv-form-group">
+                        <label>Target Column</label>
+                        <input type="text" name="target_col" class="hv-input" value="Outcome" placeholder="e.g. Outcome">
+                    </div>
+                    <div class="hv-form-group">
+                        <label>Epochs</label>
+                        <select name="epochs" class="hv-input">
+                            <option value="20">20 (Fast)</option>
+                            <option value="50" selected>50 (Recommended)</option>
+                            <option value="100">100 (Thorough)</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn-hv btn-hv-primary" style="width:100%; justify-content:center;" id="trainBtn">
+                        <i class="fa-solid fa-play"></i> Train ANN
+                    </button>
+                </form>
+
+                <!-- Training Progress -->
+                <div id="trainingProgress" style="display:none; margin-top:16px;">
+                    <div style="display:flex; justify-content:space-between; font-size:12px; color:#64748b; margin-bottom:6px;">
+                        <span id="progressStatus">Starting…</span>
+                        <span id="progressPct">0%</span>
+                    </div>
+                    <div class="hv-progress" style="height:10px;">
+                        <div class="hv-progress-bar" id="progressBar" style="width:0%; background:var(--primary); transition:width 0.4s ease;"></div>
+                    </div>
+                    <div style="font-size:11px; color:#94a3b8; margin-top:6px; text-align:center;">Training in background — page stays responsive</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Predict Form -->
+        <div class="content-card">
+            <div class="card-header"><h6><i class="fa-solid fa-stethoscope"></i> Predict Disease Risk</h6></div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('ann.predict') }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    {% set defaults = {'Pregnancies':1,'Glucose':120,'BloodPressure':70,'SkinThickness':20,'Insulin':80,'BMI':25.0,'DiabetesPedigreeFunction':0.5,'Age':30} %}
+                    {% for feat in features %}
+                    <div class="hv-form-group">
+                        <label>{{ feat }}</label>
+                        <input type="number" step="any" name="{{ feat }}" class="hv-input"
+                               value="{{ form_data[feat] if form_data and form_data[feat] else defaults[feat] }}"
+                               placeholder="{{ feat }}">
+                    </div>
+                    {% endfor %}
+                    <button type="submit" class="btn-hv btn-hv-success" style="width:100%; justify-content:center;">
+                        <i class="fa-solid fa-magnifying-glass"></i> Predict
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Results Panel -->
+    <div class="col-lg-8">
+        <!-- Prediction Result -->
+        {% if result %}
+        <div class="prediction-result {{ 'positive' if result.prediction == 'Positive' else 'negative' }}" style="margin-bottom:16px;">
+            <div class="result-icon">
+                {% if result.prediction == 'Positive' %}⚠️{% else %}✅{% endif %}
+            </div>
+            <div class="result-title" style="color:{% if result.prediction == 'Positive' %}var(--danger){% else %}var(--success){% endif %};">
+                {{ result.prediction }} – {{ result.risk_level }} Risk
+            </div>
+            <div class="result-subtitle">{{ result.recommendation }}</div>
+            <div style="display:flex; justify-content:center; gap:32px; margin-top:20px; flex-wrap:wrap;">
+                <div style="text-align:center;">
+                    <div style="font-size:28px; font-weight:800; color:{% if result.prediction == 'Positive' %}var(--danger){% else %}var(--success){% endif %};">{{ result.probability }}%</div>
+                    <div style="font-size:12px; color:#64748b;">Probability</div>
+                </div>
+                <div style="text-align:center;">
+                    <div style="font-size:28px; font-weight:800; color:var(--primary);">{{ result.confidence }}%</div>
+                    <div style="font-size:12px; color:#64748b;">Confidence</div>
+                </div>
+                <div style="text-align:center;">
+                    <div style="font-size:28px; font-weight:800; color:{% if result.risk_level == 'High' %}var(--danger){% elif result.risk_level == 'Medium' %}#d97706{% else %}var(--success){% endif %};">{{ result.risk_level }}</div>
+                    <div style="font-size:12px; color:#64748b;">Risk Level</div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Model Metrics -->
+        {% if metrics %}
+        <div class="row g-2 mb-3">
+            {% for label, val, color in [
+                ('Accuracy', (metrics.accuracy*100)|round(1)|string + '%', 'var(--primary)'),
+                ('Precision', (metrics.precision*100)|round(1)|string + '%', 'var(--teal-dark)'),
+                ('Recall', (metrics.recall*100)|round(1)|string + '%', 'var(--success)'),
+                ('F1 Score', (metrics.f1*100)|round(1)|string + '%', '#6f42c1'),
+                ('ROC AUC', metrics.roc_auc|round(3)|string, '#d97706'),
+            ] %}
+            <div class="col">
+                <div class="metric-card">
+                    <div class="metric-value" style="color:{{ color }};">{{ val }}</div>
+                    <div class="metric-label">{{ label }}</div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Training Charts -->
+        <div class="row g-3">
+            <div class="col-md-6">
+                <div class="content-card">
+                    <div class="card-header"><h6><i class="fa-solid fa-chart-line"></i> Accuracy Curve</h6></div>
+                    <div class="card-body"><div id="accChart"></div></div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="content-card">
+                    <div class="card-header"><h6><i class="fa-solid fa-chart-line"></i> Loss Curve</h6></div>
+                    <div class="card-body"><div id="lossChart"></div></div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="content-card">
+                    <div class="card-header"><h6><i class="fa-solid fa-table-cells"></i> Confusion Matrix</h6></div>
+                    <div class="card-body"><div id="cmChart"></div></div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="content-card">
+                    <div class="card-header"><h6><i class="fa-solid fa-chart-area"></i> ROC Curve</h6></div>
+                    <div class="card-body"><div id="rocChart"></div></div>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="content-card">
+            <div class="card-body" style="text-align:center; padding:80px 20px; color:#94a3b8;">
+                <i class="fa-solid fa-brain" style="font-size:56px; margin-bottom:16px; display:block; opacity:0.2;"></i>
+                <p style="font-size:15px;">Train the ANN model to see evaluation metrics and charts.</p>
+                <p style="font-size:13px;">Upload a dataset first, then click <strong>Train ANN</strong>.</p>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{% if charts %}
+<script>
+function renderChart(id, json) {
+    const fig = JSON.parse(json);
+    Plotly.newPlot(id, fig.data, {...fig.layout, paper_bgcolor:'transparent', font:{family:'Inter'}}, {responsive:true, displayModeBar:false});
+}
+renderChart('accChart', {{ charts.acc | safe }});
+renderChart('lossChart', {{ charts.loss | safe }});
+renderChart('cmChart', {{ charts.cm | safe }});
+renderChart('rocChart', {{ charts.roc | safe }});
+</script>
+{% endif %}
+<script>
+// Poll training progress
+let _pollTimer = null;
+
+function startPolling() {
+    document.getElementById('trainingProgress').style.display = 'block';
+    document.getElementById('trainBtn').disabled = true;
+    _pollTimer = setInterval(async () => {
+        try {
+            const res = await fetch('{{ url_for("ann.train_status") }}');
+            const data = await res.json();
+            document.getElementById('progressBar').style.width = data.progress + '%';
+            document.getElementById('progressPct').textContent = data.progress + '%';
+            document.getElementById('progressStatus').textContent = data.status || 'Training…';
+            if (!data.running && data.progress === 100) {
+                clearInterval(_pollTimer);
+                document.getElementById('progressStatus').textContent = '✅ ' + data.status;
+                setTimeout(() => location.reload(), 1200);
+            } else if (!data.running && data.error) {
+                clearInterval(_pollTimer);
+                document.getElementById('progressStatus').textContent = '❌ ' + data.error;
+                document.getElementById('trainBtn').disabled = false;
+            }
+        } catch(e) { /* network hiccup, keep polling */ }
+    }, 800);
+}
+
+// Auto-start polling if training is already running
+(async () => {
+    const res = await fetch('{{ url_for("ann.train_status") }}');
+    const data = await res.json();
+    if (data.running) startPolling();
+})();
+
+document.querySelector('form[action="{{ url_for("ann.train") }}"]')
+    ?.addEventListener('submit', () => setTimeout(startPolling, 600));
+</script>
+{% endblock %}
