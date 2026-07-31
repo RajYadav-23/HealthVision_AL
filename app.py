@@ -1,3 +1,4 @@
+import os
 from flask import Flask, redirect, url_for, render_template
 from flask_login import LoginManager
 from flask_wtf.csrf import CSRFProtect
@@ -74,6 +75,8 @@ def create_app() -> Flask:
     return app
 
 
+app = create_app()
+
+
 if __name__ == '__main__':
-    app = create_app()
-    app.run(debug=True)
+    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)), debug=False)
