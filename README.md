@@ -7,7 +7,7 @@ An intelligent healthcare analytics platform built with Flask, TensorFlow, and S
 ## Features
 
 - **ANN Disease Prediction** – Diabetes risk prediction using a trained Artificial Neural Network
-- **CNN Image Classification** – Chest X-ray pneumonia detection using a Convolutional Neural Network
+- **CNN Image Classification** – Brain Tumor detection using a Convolutional Neural Network
 - **Dataset Explorer** – Upload and analyze CSV datasets with Pandas
 - **Data Visualization** – 8 interactive chart types powered by Plotly
 - **Data Preprocessing** – Missing values, encoding, scaling, train/test split
@@ -58,9 +58,9 @@ Download the **Pima Indians Diabetes Dataset** from Kaggle:
 - Place in: `datasets/`
 - Upload via Dataset Explorer in the app
 
-### CNN – Chest X-Ray Classification
-Download **Chest X-Ray Images (Pneumonia)** from Kaggle:
-- Place images in: `datasets/chest_xray/`
+### CNN – brain tumor
+Download **Brain Tumor** from Kaggle:
+- Place images in: `datasets/brain_tumor/`
 - Run the training notebook in `notebooks/`
 
 ## Project Structure
